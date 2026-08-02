@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<!--
+  ┌──────────────────────────────────────────────────────────────┐
+  │  asmodeus.html — hand-built, over-caffeinated, still becoming │
+  │  there are 14 things hidden in here.                          │
+  │  if you're reading the source, that's cheating. i respect it. │
+  │  hint #1: the tilde key.                                      │
+  └──────────────────────────────────────────────────────────────┘
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Asmodeus — coder, bot-wrangler, shader tinkerer, professional friend. Node.js, GLSL, and too many unfinished side projects.">
+<meta name="author" content="Asmodeus">
+<title>Asmodeus — ~/still-becoming</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+<style>
+:root{
+  --void:#07080b;
+  --panel:#0d0f15;
+  --panel2:#11141d;
+  --ink:#eceef4;
+  --dim:#8b90a2;
+  --faint:#565b6b;
+  --gold:#e0b64a;
+  --term:#7ee787;
+  --hot:#ff5f56;
+  --wire:rgba(255,255,255,.075);
+  --wire2:rgba(255,255,255,.14);
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Consolas,monospace;
+  --serif:'Instrument Serif',Georgia,serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,sans-serif;
+  --bar:34px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);
+  background:var(--void);
+  color:var(--ink);
+  line-height:1.7;
+  overflow-x:hidden;
+  padding-bottom:var(--bar);
+  -webkit-font-smoothing:antialiased;
+}
+body.chaos{overflow:hidden}
+::selection{background:rgba(224,182,74,.28);color:#fff}
+
+/* ── ambient layers ─────────────────────────────────── */
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}
+#matrix{position:fixed;inset:0;z-index:60;pointer-events:none;display:none;opacity:.85}
+.grain{
+  position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.6;mix-blend-mode:screen;
+  background-image:linear-gradient(rgba(255,255,255,.012) 50%,transparent 50%),
+                   linear-gradient(90deg,rgba(255,255,255,.012) 50%,transparent 50%);
+  background-size:3px 3px;
+}
+
+/* ── scroll progress ────────────────────────────────── */
+#progress{position:fixed;top:0;left:0;height:2px;width:0;background:linear-gradient(90deg,var(--gold),var(--term));z-index:200;box-shadow:0 0 12px rgba(224,182,74,.5)}
+
+/* ── boot overlay ───────────────────────────────────── */
+#boot{
+  position:fixed;inset:0;z-index:9998;background:var(--void);
+  display:flex;align-items:center;justify-content:center;padding:8vw;
+}
+#boot-log{font-family:var(--mono);font-size:13.5px;line-height:2;color:var(--term);max-width:640px;width:100%;white-space:pre-wrap}
+#boot-log .ok{color:var(--term)}
+#boot-log .warn{color:var(--gold)}
+#boot-log .dimline{color:var(--faint)}
+#boot-skip{position:fixed;bottom:36px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:2px}
+
+/* ── nav (a path, not a menu) ───────────────────────── */
+.pathnav{
+  position:fixed;top:22px;left:50%;transform:translateX(-50%);z-index:150;
+  display:flex;gap:2px;align-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.5px;
+  background:rgba(7,8,11,.72);border:1px solid var(--wire);border-radius:8px;
+  padding:7px 10px;backdrop-filter:blur(14px);
+}
+.pathnav a{color:var(--dim);text-decoration:none;padding:2px 7px;border-radius:5px;transition:.18s}
+.pathnav a:hover,.pathnav a.here{color:var(--void);background:var(--gold)}
+.pathnav .sep{color:var(--faint)}
+@media(max-width:820px){.pathnav{display:none}}
+
+/* ── status bar (the signature) ─────────────────────── */
+#statusbar{
+  position:fixed;left:0;right:0;bottom:0;height:var(--bar);z-index:180;
+  display:flex;align-items:stretch;font-family:var(--mono);font-size:11px;
+  background:var(--panel);border-top:1px solid var(--wire);
+}
+#statusbar .seg{display:flex;align-items:center;padding:0 14px;color:var(--dim);white-space:nowrap;gap:7px}
+#statusbar .mode{background:var(--gold);color:#0a0a0c;font-weight:700;letter-spacing:1.5px}
+#statusbar .grow{flex:1;overflow:hidden;text-overflow:ellipsis;color:var(--faint)}
+#statusbar .btn{cursor:pointer;border-left:1px solid var(--wire);transition:.2s}
+#statusbar .btn:hover{color:var(--gold);background:rgba(255,255,255,.03)}
+#eggcount{color:var(--term)}
+@media(max-width:640px){#statusbar .hide-sm{display:none}}
+
+/* ── scenes ─────────────────────────────────────────── */
+.scene{
+  position:relative;z-index:2;min-height:100vh;display:flex;align-items:center;
+  padding:150px 6vw 170px;overflow:hidden;
+}
+.scene.tight{min-height:auto;padding:120px 6vw}
+.inner{max-width:900px;margin:0 auto;width:100%;position:relative;z-index:2}
+.s-void{background:var(--void)}
+.s-panel{background:#0a0c12}
+.s-deep{background:#080910}
+
+/* ── section headers ────────────────────────────────── */
+.prompt{
+  font-family:var(--mono);font-size:12px;letter-spacing:.5px;margin-bottom:22px;
+  display:flex;align-items:center;gap:0;flex-wrap:wrap;
+}
+.prompt .user{color:var(--term)}
+.prompt .path{color:var(--gold)}
+.prompt .cmd{color:var(--dim);margin-left:8px}
+.prompt .caret{width:7px;height:14px;background:var(--gold);margin-left:6px;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+
+h2.head{
+  font-family:var(--serif);font-weight:400;
+  font-size:clamp(38px,5.4vw,64px);letter-spacing:-2px;line-height:1.04;max-width:19ch;
+}
+h2.head em{font-style:italic;color:var(--gold)}
+.body{max-width:620px;font-size:18.5px;color:#c3c6d2;margin-top:28px}
+.body p{margin-bottom:22px}
+.body p:last-child{margin-bottom:0}
+.note{font-family:var(--mono);font-size:12.5px;color:var(--faint);margin-top:26px;line-height:1.9}
+
+/* ── hero ───────────────────────────────────────────── */
+#hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse at 50% 40%,#0f1119 0%,var(--void) 70%)}
+#name{
+  font-family:var(--serif);font-weight:400;font-size:clamp(72px,15vw,168px);
+  letter-spacing:-8px;line-height:.85;cursor:pointer;user-select:none;position:relative;display:inline-block;
+}
+#name .gl1,#name .gl2{position:absolute;inset:0;opacity:0;pointer-events:none}
+#name .gl1{color:var(--hot)}
+#name .gl2{color:var(--term)}
+#name.glitching .gl1{opacity:.8;transform:translate(-3px,2px)}
+#name.glitching .gl2{opacity:.8;transform:translate(3px,-2px)}
+#tagline{font-family:var(--mono);font-size:14px;color:var(--dim);margin-top:34px;min-height:26px;letter-spacing:.3px}
+#tagline .cur{color:var(--gold)}
+.hero-meta{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:52px;letter-spacing:1.5px;line-height:2.2}
+.scrollhint{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10.5px;letter-spacing:3px;color:var(--faint);display:flex;flex-direction:column;align-items:center;gap:12px}
+.scrollhint .line{width:1px;height:44px;background:linear-gradient(transparent,var(--faint))}
+
+/* ── generic card ───────────────────────────────────── */
+.card{
+  background:var(--panel);border:1px solid var(--wire);border-radius:14px;padding:30px 28px;
+  position:relative;transition:border-color .3s,transform .45s cubic-bezier(.23,1,.32,1),box-shadow .45s;
+}
+.card:hover{border-color:rgba(224,182,74,.3);transform:translateY(-5px);box-shadow:0 26px 60px -24px rgba(0,0,0,.8)}
+.card .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+.card h3{font-family:var(--serif);font-weight:400;font-size:22px;letter-spacing:-.6px;margin-bottom:10px;line-height:1.2}
+.card p{font-size:15.5px;color:#b4b8c6;line-height:1.62}
+.grid{display:grid;gap:20px;margin-top:44px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+
+/* ── stack / repo rows ──────────────────────────────── */
+.repo{
+  display:flex;align-items:flex-start;gap:20px;padding:20px 22px;border:1px solid var(--wire);
+  border-radius:12px;background:var(--panel);margin-bottom:12px;font-family:var(--mono);
+  transition:.28s;cursor:default;
+}
+.repo:hover{border-color:var(--wire2);background:var(--panel2);transform:translateX(6px)}
+.repo .dot{width:9px;height:9px;border-radius:50%;margin-top:8px;flex-shrink:0}
+.repo .rname{font-size:14.5px;color:var(--ink);font-weight:500}
+.repo .rdesc{font-family:var(--sans);font-size:15px;color:var(--dim);margin-top:5px;line-height:1.55}
+.repo .rmeta{font-size:10.5px;color:var(--faint);margin-top:9px;letter-spacing:1px}
+
+/* ── timeline ───────────────────────────────────────── */
+.log{margin-top:52px;border-left:1px solid var(--wire);padding-left:0}
+.logrow{display:flex;gap:22px;padding:16px 0 16px 26px;position:relative;cursor:pointer;transition:.25s}
+.logrow:hover{background:rgba(255,255,255,.018)}
+.logrow::before{content:'';position:absolute;left:-4.5px;top:26px;width:8px;height:8px;border-radius:50%;background:var(--faint);transition:.25s}
+.logrow:hover::before{background:var(--gold);box-shadow:0 0 0 4px rgba(224,182,74,.16)}
+.logrow .hash{font-family:var(--mono);font-size:12px;color:var(--gold);width:78px;flex-shrink:0;padding-top:3px}
+.logrow .msg{font-size:16.5px;color:#c7cad6;line-height:1.55}
+.logrow .diff{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:6px;display:block}
+.logrow.open .diff{color:var(--term)}
+
+/* ── friends ────────────────────────────────────────── */
+.friend{
+  background:linear-gradient(160deg,var(--panel2),var(--panel));
+  border:1px solid var(--wire);border-radius:18px;padding:0;overflow:hidden;position:relative;
+  transition:border-color .3s,transform .5s cubic-bezier(.23,1,.32,1),box-shadow .5s;
+}
+.friend:hover{transform:translateY(-6px);border-color:rgba(224,182,74,.32);box-shadow:0 34px 80px -30px rgba(0,0,0,.9)}
+.friend .bar{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--wire);font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:1.5px}
+.friend .bar i{font-size:9px}
+.friend .bar .d{width:9px;height:9px;border-radius:50%}
+.friend .pad{padding:28px}
+.friend .who{display:flex;align-items:center;gap:16px}
+.friend .mono-avatar{
+  width:56px;height:56px;border-radius:14px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:26px;color:var(--void);background:var(--gold);
+}
+.friend.irl .mono-avatar{background:var(--term)}
+.friend .handle{font-family:var(--mono);font-size:13px;color:var(--dim)}
+.friend .real{font-family:var(--serif);font-size:27px;letter-spacing:-.8px;line-height:1.1}
+.friend .why{font-size:16px;color:#bcc0cd;margin-top:20px;line-height:1.65}
+.stats{margin-top:22px;border-top:1px dashed var(--wire);padding-top:16px;font-family:var(--mono);font-size:11.5px}
+.stats div{display:flex;justify-content:space-between;padding:5px 0;color:var(--faint)}
+.stats div span:last-child{color:var(--term)}
+.friend-actions{display:flex;gap:9px;margin-top:20px;flex-wrap:wrap}
+.fbtn{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.5px;padding:9px 15px;border-radius:8px;
+  border:1px solid var(--wire2);background:transparent;color:var(--dim);cursor:pointer;transition:.2s;
+}
+.fbtn:hover{color:var(--gold);border-color:var(--gold)}
+.fbtn.danger:hover{color:var(--hot);border-color:var(--hot)}
+
+/* ── dispatches ─────────────────────────────────────── */
+.feedbox{margin-top:38px;background:var(--panel);border:1px solid var(--wire);border-radius:16px;padding:30px 26px}
+#announcements-list{display:flex;flex-direction:column;gap:12px}
+.post{background:rgba(255,255,255,.016);border:1px solid var(--wire);border-radius:12px;padding:18px 20px;animation:rise .55s cubic-bezier(.23,1,.32,1) both}
+.post:hover{border-color:rgba(224,182,74,.22)}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.post-date{font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;color:var(--gold);margin-bottom:7px}
+.post-title{font-size:16.5px;font-weight:600;color:#e6e8ef;margin-bottom:7px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.post-excerpt{font-size:15px;color:#b4b8c6;line-height:1.6}
+.new-badge{background:var(--hot);color:#140505;border-radius:6px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;flex-shrink:0}
+.empty{font-family:var(--mono);font-size:12.5px;color:var(--faint);padding:14px 2px;line-height:1.9}
+
+/* ── admin ──────────────────────────────────────────── */
+#admin-lock{color:var(--gold);opacity:.35;font-size:14px;cursor:pointer;transition:.25s}
+#admin-lock:hover{opacity:1;transform:scale(1.15) rotate(-8deg)}
+.modal{position:fixed;inset:0;background:rgba(5,6,9,.92);display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;backdrop-filter:blur(16px);padding:24px}
+.modal-in{background:var(--panel2);border:1px solid var(--wire2);border-radius:14px;padding:34px 30px;width:100%;max-width:380px;text-align:center}
+.modal-in h3{font-family:var(--serif);font-size:22px;margin-bottom:6px;letter-spacing:-.5px}
+.modal-in p{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+.modal-in input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--wire2);color:var(--ink);padding:13px 15px;border-radius:9px;font-family:var(--mono);font-size:14px;margin:20px 0 20px;outline:none}
+.modal-in button{background:var(--gold);color:#0a0a0c;border:none;padding:11px 30px;border-radius:999px;font-family:var(--mono);font-weight:700;cursor:pointer;font-size:13px}
+.rt-toolbar{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.02);border:1px solid var(--wire);border-radius:9px;padding:6px 9px;margin-bottom:10px;flex-wrap:wrap}
+.rt-toolbar button{background:rgba(255,255,255,.05);border:1px solid var(--wire2);color:var(--gold);width:31px;height:31px;border-radius:7px;font-weight:700;font-size:14px;cursor:pointer;transition:.2s}
+.rt-toolbar button:hover{background:rgba(224,182,74,.16);border-color:var(--gold)}
+.rt-toolbar select{background:rgba(0,0,0,.35);border:1px solid var(--wire2);color:#ddd;border-radius:7px;padding:5px 8px;font-size:12.5px;cursor:pointer;font-family:var(--mono)}
+.rt-toolbar input[type=color]{width:33px;height:27px;padding:0;border:none;background:transparent;cursor:pointer}
+
+/* ── terminal ───────────────────────────────────────── */
+#term{
+  position:fixed;left:0;right:0;margin:0 auto;bottom:calc(var(--bar) + 18px);width:min(760px,92vw);
+  height:min(430px,60vh);background:rgba(9,11,16,.96);border:1px solid var(--wire2);border-radius:12px;
+  z-index:400;display:none;flex-direction:column;overflow:hidden;backdrop-filter:blur(20px);
+  box-shadow:0 40px 100px -30px rgba(0,0,0,.95);opacity:0;
+}
+#term .tbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--wire);font-family:var(--mono);font-size:11px;color:var(--faint)}
+#term .tbar .d{width:11px;height:11px;border-radius:50%}
+#term-out{flex:1;overflow-y:auto;padding:16px 18px;font-family:var(--mono);font-size:12.8px;line-height:1.75;color:#c8ccd8;white-space:pre-wrap;word-break:break-word}
+#term-out .u{color:var(--term)}
+#term-out .g{color:var(--gold)}
+#term-out .r{color:var(--hot)}
+#term-out .f{color:var(--faint)}
+#term-line{display:flex;align-items:center;gap:9px;padding:11px 18px;border-top:1px solid var(--wire);font-family:var(--mono);font-size:12.8px}
+#term-line .ps{color:var(--term)}
+#term-in{flex:1;background:transparent;border:none;outline:none;color:var(--ink);font-family:var(--mono);font-size:12.8px}
+
+/* ── toasts / achievements ──────────────────────────── */
+#toasts{position:fixed;right:20px;bottom:calc(var(--bar) + 18px);z-index:500;display:flex;flex-direction:column;gap:10px;align-items:flex-end;pointer-events:none}
+.toast{
+  background:var(--panel2);border:1px solid rgba(224,182,74,.35);border-left:3px solid var(--gold);
+  border-radius:10px;padding:12px 16px;font-family:var(--mono);font-size:11.5px;color:var(--ink);
+  max-width:290px;box-shadow:0 20px 50px -20px rgba(0,0,0,.9);
+}
+.toast .t{color:var(--gold);letter-spacing:1.5px;font-size:10px;display:block;margin-bottom:4px}
+.toast.plain{border-color:var(--wire2);border-left-color:var(--dim)}
+
+/* ── context menu ───────────────────────────────────── */
+#ctx{position:fixed;z-index:600;background:var(--panel2);border:1px solid var(--wire2);border-radius:10px;padding:6px;display:none;font-family:var(--mono);font-size:12px;min-width:212px;box-shadow:0 24px 60px -20px rgba(0,0,0,.9)}
+#ctx div{padding:8px 12px;border-radius:7px;color:var(--dim);cursor:pointer;transition:.15s}
+#ctx div:hover{background:rgba(224,182,74,.12);color:var(--gold)}
+#ctx div.sep{padding:0;margin:5px 0;height:1px;background:var(--wire);cursor:default}
+#ctx div.dead{color:var(--faint);cursor:not-allowed}
+#ctx div.dead:hover{background:transparent;color:var(--faint)}
+
+/* ── cookie troll ───────────────────────────────────── */
+#cookie{
+  position:fixed;left:20px;bottom:calc(var(--bar) + 18px);z-index:450;max-width:340px;
+  background:var(--panel2);border:1px solid var(--wire2);border-radius:12px;padding:20px;
+  font-family:var(--mono);font-size:12px;color:var(--dim);display:none;line-height:1.7;
+  box-shadow:0 24px 60px -22px rgba(0,0,0,.9);
+}
+#cookie b{color:var(--gold);display:block;margin-bottom:8px;letter-spacing:1px}
+#cookie .row{display:flex;gap:8px;margin-top:14px}
+#cookie button{flex:1;font-family:var(--mono);font-size:11.5px;padding:9px;border-radius:8px;border:1px solid var(--wire2);background:transparent;color:var(--dim);cursor:pointer;transition:.2s}
+#cookie button:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── keyboard help ──────────────────────────────────── */
+#keys{position:fixed;inset:0;z-index:700;background:rgba(5,6,9,.9);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:24px}
+#keys .box{background:var(--panel2);border:1px solid var(--wire2);border-radius:14px;padding:32px;max-width:460px;width:100%;font-family:var(--mono);font-size:12.5px}
+#keys h4{font-family:var(--serif);font-size:22px;font-weight:400;margin-bottom:18px;letter-spacing:-.5px}
+#keys .k{display:flex;justify-content:space-between;padding:7px 0;color:var(--dim);border-bottom:1px solid rgba(255,255,255,.04)}
+#keys .k kbd{background:rgba(255,255,255,.06);border:1px solid var(--wire2);border-radius:5px;padding:2px 8px;color:var(--gold)}
+
+/* ── misc troll bits ────────────────────────────────── */
+#runaway{position:relative;font-family:var(--mono);font-size:12px;padding:11px 20px;border-radius:9px;border:1px dashed var(--hot);background:transparent;color:var(--hot);cursor:pointer;transition:transform .28s cubic-bezier(.23,1,.32,1)}
+.hidden-chapter{display:none}
+.reveal{opacity:0}
+.final{text-align:center}
+.final h2{font-family:var(--serif);font-weight:400;font-size:clamp(40px,6.4vw,70px);letter-spacing:-2.6px;line-height:1.02;max-width:16ch;margin:0 auto}
+.final .t{font-size:18px;color:var(--dim);max-width:440px;margin:32px auto 46px}
+.final a.cta{font-family:var(--mono);color:var(--gold);text-decoration:none;font-size:13.5px;letter-spacing:.6px;border-bottom:1px solid currentColor;padding-bottom:4px;transition:.22s}
+.final a.cta:hover{letter-spacing:2.4px}
+.sig{font-family:var(--mono);margin-top:90px;font-size:11px;letter-spacing:1.6px;color:var(--faint);cursor:pointer}
+
+@media(max-width:768px){
+  .scene{padding:110px 6vw 130px}
+  #name{letter-spacing:-4px}
+  .grid{margin-top:34px}
+  .logrow{gap:14px}
+  .logrow .hash{width:62px;font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<canvas id="stars"></canvas>
+<canvas id="matrix"></canvas>
+
+<!-- boot -->
+<div id="boot"><div id="boot-log"></div><div id="boot-skip">press any key to skip</div></div>
+
+<nav class="pathnav" aria-label="Sections">
+  <span class="sep">~/</span>
+  <a href="#origin">origin</a><span class="sep">/</span>
+  <a href="#ugly">the-ugly-era</a><span class="sep">/</span>
+  <a href="#stack">stack</a><span class="sep">/</span>
+  <a href="#log">git-log</a><span class="sep">/</span>
+  <a href="#humans">humans</a><span class="sep">/</span>
+  <a href="#friends">friends</a><span class="sep">/</span>
+  <a href="#dispatches">dispatches</a>
+</nav>
+
+<!-- ════ HERO ════ -->
+<section id="hero" class="scene">
+  <div class="grain"></div>
+  <div class="inner" style="text-align:center">
+    <h1 id="name"><span class="gl1" aria-hidden="true">Asmodeus</span><span class="gl2" aria-hidden="true">Asmodeus</span>Asmodeus</h1>
+    <div id="tagline"></div>
+    <div class="hero-meta">
+      NODE.JS &nbsp;·&nbsp; DISCORD.JS &nbsp;·&nbsp; GLSL &nbsp;·&nbsp; CSS AT 3AM<br>
+      14 THINGS ARE HIDDEN ON THIS PAGE &nbsp;·&nbsp; PRESS <span style="color:var(--gold)">~</span> TO START LOOKING
+    </div>
+  </div>
+  <div class="scrollhint"><div class="line"></div><span>SCROLL</span></div>
+</section>
+
+<!-- ════ ORIGIN ════ -->
+<section id="origin" class="scene s-panel">
+  <div class="inner">
+    <div class="prompt"><span class="user">asmodeus@localhost</span><span class="path">:~/origin</span><span class="cmd">$ cat how-it-started.md</span><span class="caret"></span></div>
+    <h2 class="head">I built entire worlds nobody was ever going to see.</h2>
+    <div class="body">
+      <p>Years inside Minecraft. Not playing — building. Cities with transit that actually worked. Redstone contraptions held together with hope. Then shader packs, because the world looked wrong and I wanted to know why light behaved like that.</p>
+      <p>That's the whole origin story: something didn't feel right, so I opened it up. Nobody asked me to. Nobody was watching. It turns out that's the only reason I've ever learned anything.</p>
+    </div>
+    <div class="note">
+      $ git log --oneline | wc -l<br>
+      <span style="color:var(--gold)">a lot</span><br>
+      $ ls ~/projects/finished/<br>
+      <span style="color:var(--faint)">(the directory is smaller than you'd hope. we don't talk about it.)</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════ UGLY ERA ════ -->
+<section id="ugly" class="scene s-deep">
+  <div class="inner">
+    <div class="prompt"><span class="user">asmodeus@localhost</span><span class="path">:~/the-ugly-era</span><span class="cmd">$ git blame everything</span><span class="caret"></span></div>
+    <h2 class="head">Every good thing I've made stands on a pile of <em>genuinely terrible</em> code.</h2>
+    <div class="body">
+      <p>Websites that hurt to look at. Bots that DM'd 400 people by accident. A shader that turned the sky into a strobe light and gave my friend a headache. Nested callbacks so deep they had their own weather.</p>
+      <p>I kept every one of them. Not out of nostalgia — out of evidence. Broken things teach faster and remember longer than the ones that work on the first try.</p>
+    </div>
+
+    <div class="grid g3">
+      <div class="card"><div class="tag">Crime #1</div><h3>The infinite loop</h3><p>Ran a while-loop on a hosted bot with no exit condition. Learned about rate limits from a very polite email.</p></div>
+      <div class="card"><div class="tag">Crime #2</div><h3>console.log("here")</h3><p>My entire debugging methodology for two years. Also, occasionally, still is.</p></div>
+      <div class="card"><div class="tag">Crime #3</div><h3>The committed .env</h3><p>Only once. Rotated in eleven minutes. Still thinking about it at night.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ STACK ════ -->
+<section id="stack" class="scene s-panel">
+  <div class="inner">
+    <div class="prompt"><span class="user">asmodeus@localhost</span><span class="path">:~/stack</span><span class="cmd">$ ls -la --what-i-actually-build</span><span class="caret"></span></div>
+    <h2 class="head">What I make when nobody's assigning it.</h2>
+
+    <div style="margin-top:44px">
+      <div class="repo"><div class="dot" style="background:var(--term)"></div><div>
+        <div class="rname">the-bot/ <span style="color:var(--faint)">— index.js</span></div>
+        <div class="rdesc">A multi-server Discord bot in Node. Moderation, roles, logging, the odd cursed command a friend requested at 2am and I built anyway. Runs for real people, in real servers, which is the only reason it's held to a standard.</div>
+        <div class="rmeta">NODE · DISCORD.JS · JSON PERSISTENCE · UPTIME: EMBARRASSINGLY HIGH</div>
+      </div></div>
+
+      <div class="repo"><div class="dot" style="background:var(--gold)"></div><div>
+        <div class="rname">shaders/ <span style="color:var(--faint)">— *.fsh, *.vsh</span></div>
+        <div class="rdesc">Minecraft GLSL. Volumetric clouds, better noise, soft shadows, tonemapping that stops sunsets looking like a traffic light. Mostly this is me arguing with light until it apologises.</div>
+        <div class="rmeta">GLSL · OPTIFINE/IRIS · 400 RECOMPILES PER GOOD IDEA</div>
+      </div></div>
+
+      <div class="repo"><div class="dot" style="background:#8b5cf6"></div><div>
+        <div class="rname">web/ <span style="color:var(--faint)">— this page, among others</span></div>
+        <div class="rdesc">Canvas splash screens, GSAP timelines, interfaces with too many hidden things in them. If a site loads and something moves in a way that makes you go "huh, nice" — that's the whole payoff for me.</div>
+        <div class="rmeta">VANILLA JS · GSAP · CANVAS · ZERO FRAMEWORKS, ALL EGO</div>
+      </div></div>
+
+      <div class="repo"><div class="dot" style="background:var(--hot)"></div><div>
+        <div class="rname">unfinished/ <span style="color:var(--faint)">— do not open</span></div>
+        <div class="rdesc">137 folders. Each one was going to be the big one. Some still might be. This is not a bug in how I work, it's the compost heap the good stuff grows out of.</div>
+        <div class="rmeta">STATUS: DORMANT · LAST COMMIT: "will finish tomorrow"</div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ GIT LOG ════ -->
+<section id="log" class="scene s-deep">
+  <div class="inner">
+    <div class="prompt"><span class="user">asmodeus@localhost</span><span class="path">:~/life</span><span class="cmd">$ git log --oneline --graph</span><span class="caret"></span></div>
+    <h2 class="head">The commits that actually changed the branch.</h2>
+    <div class="note" style="margin-top:18px">click a commit to expand the diff</div>
+
+    <div class="log">
+      <div class="logrow" data-diff="+ learned that a thing you make can land somewhere in someone's chest&#10;- learned that 'impressive' was never the point">
+        <div class="hash">a1f9c02</div>
+        <div class="msg">Built a dumb little site for a friend who was having a bad month. They said it made them feel seen.<span class="diff">expand diff →</span></div>
+      </div>
+      <div class="logrow" data-diff="+ shipped the first bot that other servers actually used&#10;+ 3am support requests, answered anyway&#10;- free time">
+        <div class="hash">7de3b81</div>
+        <div class="msg">First bot that wasn't just for my own server. Other people started depending on it.<span class="diff">expand diff →</span></div>
+      </div>
+      <div class="logrow" data-diff="+ numbers went up&#10;- the numbers meant nothing&#10;! merge conflict: ego vs. reason">
+        <div class="hash">c04ba55</div>
+        <div class="msg">Reached more people than I could picture. Felt strangely empty. Started walking back toward things that were small and honest.<span class="diff">expand diff →</span></div>
+      </div>
+      <div class="logrow" data-diff="+ started writing code i'd be okay explaining out loud&#10;+ started deleting cleverness&#10;+ comments, actual ones">
+        <div class="hash">9b2e7af</div>
+        <div class="msg">Stopped performing. Started writing code I'd be happy to read back in a year.<span class="diff">expand diff →</span></div>
+      </div>
+      <div class="logrow" data-diff="+ still here&#10;+ still curious&#10;+ still refusing to use a framework for a personal page (unwise, mine)">
+        <div class="hash">HEAD</div>
+        <div class="msg">Present day. Still building. Still bad at finishing things. Getting better at both.<span class="diff">expand diff →</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ HUMANS ════ -->
+<section id="humans" class="scene s-panel">
+  <div class="inner">
+    <div class="prompt"><span class="user">asmodeus@localhost</span><span class="path">:~/humans</span><span class="cmd">$ cat principles.txt</span><span class="caret"></span></div>
+    <h2 class="head">I'd rather be the person you can message at 2am than the person with the best repo.</h2>
+    <div class="body">
+      <p>Code is the fun part. But everything I've made worth keeping came out of someone else needing it — a friend, a server, a person who couldn't find a tool so I wrote one badly and then wrote it again properly.</p>
+    </div>
+
+    <div class="grid g2">
+      <div class="card"><div class="tag">How I help</div><h3>Actually reads the error</h3><p>Send me your stack trace. I'll read the whole thing, not just the first line, and I won't make you feel stupid for asking. Everyone was googling "what is undefined" once.</p></div>
+      <div class="card"><div class="tag">How I work</div><h3>Boring code, loud ideas</h3><p>Be adventurous with what you build, conservative with how you build it. Clever code is a letter to your future self written in a language you'll have forgotten.</p></div>
+      <div class="card"><div class="tag">What I believe</div><h3>Credit is free</h3><p>Say who helped. Link the tutorial. Name the person whose snippet you adapted. It costs nothing and it's how the whole thing keeps working.</p></div>
+      <div class="card"><div class="tag">The rule</div><h3>Don't punch down</h3><p>No dunking on beginners, no "just" in explanations, no gatekeeping a hobby that's supposed to be joyful. If you know something, hand it over.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ FRIENDS ════ -->
+<section id="friends" class="scene s-deep">
+  <div class="inner">
+    <div class="prompt"><span class="user">asmodeus@localhost</span><span class="path">:~/friends</span><span class="cmd">$ friend --list --pinned</span><span class="caret"></span></div>
+    <h2 class="head">Two people I'd rewrite the whole codebase for.</h2>
+    <div class="body"><p>Everyone gets a mention. These two get a mount point.</p></div>
+
+    <!-- ✏️ EDIT ME: swap the names, handles, dates and lines below for your actual people -->
+    <div class="grid g2" style="margin-top:46px">
+
+      <div class="friend online">
+        <div class="bar"><span class="d" style="background:var(--term)"></span> STATUS: ONLINE · PINNED #1</div>
+        <div class="pad">
+          <div class="who">
+            <div class="mono-avatar">Nyx</div>
+            <div>
+              <div class="handle">@mylittlenyxie</div>
+              <div class="real">Best Online</div>
+            </div>
+          </div>
+          <div class="why">Met in a Discord server neither of us should have been in. Six timezones, zero excuses. Has debugged my code at 4am their time without once asking why it was on fire. Half my good ideas are just things they said first and I stole.</div>
+          <div class="stats">
+            <div><span>first message</span><span>years ago</span></div>
+            <div><span>voice call uptime</span><span>99.2%</span></div>
+            <div><span>arguments won by me</span><span>0</span></div>
+            <div><span>times they've been right</span><span>all of them</span></div>
+          </div>
+          <div class="friend-actions">
+            <button class="fbtn" data-poke="online">poke</button>
+            <button class="fbtn danger" data-block="online">block</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="friend irl">
+        <div class="bar"><span class="d" style="background:var(--gold)"></span> STATUS: IRL · PINNED #2 · VERIFIED HUMAN</div>
+        <div class="pad">
+          <div class="who">
+            <div class="mono-avatar">Praneeth</div>
+            <div>
+              <div class="handle">./real-life</div>
+              <div class="real">Best IRL</div>
+            </div>
+          </div>
+          <div class="why">Knew me before I could write a for-loop. Doesn't care what I've built, which is exactly why I can tell them about it. The only person allowed to say "you're being weird about this again" and be immediately correct.</div>
+          <div class="stats">
+            <div><span>knows my actual name</span><span>true</span></div>
+            <div><span>understands what i do</span><span>false</span></div>
+            <div><span>supports it anyway</span><span>true</span></div>
+            <div><span>latency</span><span>0ms</span></div>
+          </div>
+          <div class="friend-actions">
+            <button class="fbtn" data-poke="irl">poke</button>
+            <button class="fbtn danger" data-block="irl">block</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:34px">
+      $ friend --list --all<br>
+      <span style="color:var(--faint)">too many to render. if we've ever debugged something together at an unreasonable hour, you're in the array.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════ HIDDEN CHAPTER (triple-click the footer signature) ════ -->
+<section id="secret-chapter" class="scene s-panel hidden-chapter tight">
+  <div class="inner">
+    <div class="prompt"><span class="user">root@localhost</span><span class="path">:/dev/honest</span><span class="cmd">$ cat unlisted.txt</span><span class="caret"></span></div>
+    <h2 class="head">Okay. The unlisted one.</h2>
+    <div class="body">
+      <p>I make things partly because it's the most reliable way I know to be useful to people without having to be good at talking. A bot that solves a mod's headache says something I'd fumble out loud.</p>
+      <p>If you dug around this page long enough to find this: that instinct — poking at a thing until it opens — is the entire job. You've already got it. Go build something ugly.</p>
+    </div>
+    <div class="note">— written at an hour I should not admit to</div>
+  </div>
+</section>
+
+<!-- ════ DISPATCHES ════ -->
+<section id="dispatches" class="scene s-void">
+  <div class="inner">
+    <div class="prompt"><span class="user">asmodeus@localhost</span><span class="path">:~/dispatches</span><span class="cmd">$ tail -f announcements.log</span><span class="caret"></span></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <h2 class="head" style="margin-bottom:0">Signals from right now.</h2>
+      <span id="admin-lock" title="Admin"><i class="fas fa-lock"></i></span>
+    </div>
+
+    <div class="feedbox">
+      <div id="announcements-list"></div>
+      <div id="admin-post-form" style="display:none;margin-top:34px;padding:26px;background:rgba(255,255,255,.02);border:1px solid var(--wire);border-radius:12px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ FINAL ════ -->
+<section class="scene s-deep">
+  <div class="grain"></div>
+  <div class="inner final">
+    <h2>The build is never finished. That's the good news.</h2>
+    <p class="t">Every interface is a sentence. Every system is a promise. Most of mine are still in draft.</p>
+    <a href="mailto:outbreakmalware@gmail.com" class="cta">$ mail asmodeus --subject "hey"</a>
+    <div style="margin-top:52px"><button id="runaway">do not click this button</button></div>
+    <div class="sig" id="sig" title="...">ASMODEUS · STILL BECOMING · 2026</div>
+  </div>
+</section>
+
+<!-- ════ FURNITURE ════ -->
+<div id="statusbar">
+  <div class="seg mode">NORMAL</div>
+  <div class="seg" id="sb-path">~/hero</div>
+  <div class="seg grow hide-sm" id="sb-msg">all systems nominal</div>
+  <div class="seg hide-sm">eggs <span id="eggcount">0/14</span></div>
+  <div class="seg btn" id="sb-keys">? keys</div>
+  <div class="seg btn" id="sb-term">~ terminal</div>
+</div>
+
+<div id="term">
+  <div class="tbar"><span class="d" style="background:var(--hot)"></span><span class="d" style="background:var(--gold)"></span><span class="d" style="background:var(--term)"></span><span style="margin-left:8px">asmodeus — bash — 80×24</span></div>
+  <div id="term-out"></div>
+  <div id="term-line"><span class="ps">guest@asmodeus:~$</span><input id="term-in" autocomplete="off" spellcheck="false" aria-label="terminal input"></div>
+</div>
+
+<div id="toasts"></div>
+<div id="ctx"></div>
+
+<div id="cookie">
+  <b>COOKIE NOTICE</b>
+  This site stores no cookies, no trackers, and no analytics. There were cookies. I ate them. Sorry.
+  <div class="row"><button data-cookie="a">Accept</button><button data-cookie="b">Accept, but sadly</button></div>
+</div>
+
+<div id="keys"><div class="box">
+  <h4>Keyboard shortcuts</h4>
+  <div class="k"><span>Open terminal</span><kbd>~</kbd></div>
+  <div class="k"><span>Close anything</span><kbd>Esc</kbd></div>
+  <div class="k"><span>This panel</span><kbd>?</kbd></div>
+  <div class="k"><span>Chaos mode</span><kbd>↑↑↓↓←→←→BA</kbd></div>
+  <div class="k"><span>Request light mode</span><kbd>L</kbd></div>
+  <div class="k"><span>Summon a friend</span><kbd>F</kbd></div>
+  <div class="k"><span>Deploy to production</span><kbd>Ctrl+Alt+YOLO</kbd></div>
+  <div class="k"><span>Undo life choices</span><kbd>Ctrl+Z</kbd></div>
+  <div style="margin-top:18px;color:var(--faint);font-size:11px">two of these are real lies. figure out which.</div>
+</div></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   ASMODEUS.JS — everything below is held together by vibes
+   and a healthy fear of frameworks.
+   ═══════════════════════════════════════════════════════════ */
+
+const RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+
+/* ── easter egg registry ─────────────────────────────── */
+const EGGS = {
+  konami:'Chaos mode', terminal:'Opened the terminal', sudo:'Typed sudo',
+  ctx:'Right-clicked', runaway:'Caught the button', light:'Requested light mode',
+  cookie:'Read the cookie notice', name:'Clicked the name 10 times',
+  console:'Ran something in the console', block:'Tried to block a friend',
+  secret:'Found the unlisted chapter', keys:'Opened the shortcuts',
+  matrix:'Turned on the rain', neofetch:'Ran neofetch'
+};
+const TOTAL = Object.keys(EGGS).length;
+const found = new Set();
+
+function egg(id){
+  if(!EGGS[id] || found.has(id)) return;
+  found.add(id);
+  $('#eggcount').textContent = found.size + '/' + TOTAL;
+  toast('EASTER EGG ' + found.size + '/' + TOTAL, EGGS[id]);
+  if(found.size === TOTAL) setTimeout(allFound, 900);
+}
+
+function toast(title, msg, plain){
+  const el = document.createElement('div');
+  el.className = 'toast' + (plain ? ' plain' : '');
+  el.innerHTML = '<span class="t">'+title+'</span>'+msg;
+  $('#toasts').appendChild(el);
+  gsap.fromTo(el,{opacity:0,x:34,scale:.96},{opacity:1,x:0,scale:1,duration:.42,ease:'power3.out'});
+  setTimeout(()=>gsap.to(el,{opacity:0,x:20,duration:.35,onComplete:()=>el.remove()}), 4200);
+}
+
+function allFound(){
+  toast('ALL 14 FOUND','you actually did it. genuinely — thank you for poking at my stuff. that\'s the nicest thing anyone can do to a website.');
+  $('#sb-msg').textContent = 'all 14 found — you are officially a menace (affectionate)';
+  if(RM) return;
+  for(let i=0;i<70;i++){
+    const c = document.createElement('div');
+    c.style.cssText = 'position:fixed;z-index:900;width:7px;height:12px;pointer-events:none;background:'+
+      (i%3?'#e0b64a':'#7ee787')+';left:'+Math.random()*100+'vw;top:-20px;border-radius:2px';
+    document.body.appendChild(c);
+    gsap.to(c,{y:window.innerHeight+80,rotation:Math.random()*900-450,duration:2.2+Math.random()*2.4,
+      ease:'none',delay:Math.random()*.9,onComplete:()=>c.remove()});
+  }
+}
+
+/* ── boot sequence ───────────────────────────────────── */
+const BOOT = [
+  ['$ ./asmodeus --init','f'],
+  ['[  ok  ] mounting /dev/minecraft','ok'],
+  ['[  ok  ] loading childhood.dat ......... 4.2 GiB','ok'],
+  ['[ warn ] found 137 unfinished projects','warn'],
+  ['[  ok  ] friends: 2 pinned, many loved','ok'],
+  ['[ warn ] caffeine levels: nominal-ish','warn'],
+  ['[  ok  ] compiling personality ......... done','ok'],
+  ['','f'],
+  ['ready.','ok']
+];
+
+function boot(){
+  const log = $('#boot-log'), overlay = $('#boot');
+  let done = false;
+  const finish = ()=>{
+    if(done) return; done = true;
+    gsap.to(overlay,{opacity:0,duration:.6,ease:'power2.inOut',onComplete:()=>{overlay.remove();start();}});
+  };
+  window.addEventListener('keydown', finish, {once:true});
+  overlay.addEventListener('click', finish, {once:true});
+  if(RM){ finish(); return; }
+
+  let i = 0;
+  (function nextLine(){
+    if(i >= BOOT.length){ setTimeout(finish, 620); return; }
+    const [txt,cls] = BOOT[i++];
+    const line = document.createElement('div');
+    line.className = cls === 'ok' ? 'ok' : cls === 'warn' ? 'warn' : 'dimline';
+    log.appendChild(line);
+    let c = 0;
+    const type = setInterval(()=>{
+      line.textContent = txt.slice(0, ++c);
+      if(c >= txt.length){ clearInterval(type); setTimeout(nextLine, 90); }
+    }, 11);
+  })();
+}
+
+/* ── hero: name drop + glitch + typed tagline ────────── */
+const TAGLINES = [
+  'not a portfolio. a machine that remembers.',
+  'i write bots that other people rely on.',
+  'i argue with light for fun (glsl).',
+  'i will read your entire stack trace.',
+  'there are 14 things hidden here. go on.'
+];
+
+function heroIntro(){
+  const name = $('#name');
+  if(RM){ gsap.set(name,{opacity:1,y:0,scale:1}); return; }
+  gsap.set(name,{y:-320,opacity:0,scale:.6});
+  gsap.timeline({delay:.25})
+    .to(name,{y:0,opacity:1,scale:1,duration:1,ease:'power3.in'})
+    .to(name,{scaleY:.78,scaleX:1.16,duration:.07,ease:'power2.out'})
+    .to(name,{scaleY:1,scaleX:1,y:-28,duration:.55,ease:'bounce.out'})
+    .to(name,{y:0,duration:.4,ease:'power2.out'});
+
+  setInterval(()=>{
+    if(Math.random() > .55){
+      name.classList.add('glitching');
+      setTimeout(()=>name.classList.remove('glitching'), 90 + Math.random()*90);
+    }
+  }, 2600);
+}
+
+function typeTaglines(){
+  const el = $('#tagline');
+  let li = 0;
+  (function loop(){
+    const txt = TAGLINES[li % TAGLINES.length]; li++;
+    let i = 0;
+    const inT = setInterval(()=>{
+      el.innerHTML = txt.slice(0,++i) + '<span class="cur">▊</span>';
+      if(i >= txt.length){
+        clearInterval(inT);
+        setTimeout(()=>{
+          let j = txt.length;
+          const outT = setInterval(()=>{
+            el.innerHTML = txt.slice(0,--j) + '<span class="cur">▊</span>';
+            if(j <= 0){ clearInterval(outT); setTimeout(loop, 320); }
+          }, 16);
+        }, 2100);
+      }
+    }, 42);
+  })();
+}
+
+/* ── starfield ───────────────────────────────────────── */
+function starfield(){
+  if(RM) return;
+  const cv = $('#stars'), ctx = cv.getContext('2d');
+  let w, h, pts = [];
+  const resize = ()=>{
+    w = cv.width = innerWidth; h = cv.height = innerHeight;
+    const n = Math.min(90, Math.floor(w*h/22000));
+    pts = Array.from({length:n},()=>({
+      x:Math.random()*w, y:Math.random()*h,
+      vx:(Math.random()-.5)*.16, vy:(Math.random()-.5)*.16,
+      r:Math.random()*1.3+.35
+    }));
+  };
+  addEventListener('resize', resize); resize();
+  (function frame(){
+    ctx.clearRect(0,0,w,h);
+    pts.forEach(p=>{
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<0||p.x>w) p.vx*=-1;
+      if(p.y<0||p.y>h) p.vy*=-1;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7);
+      ctx.fillStyle = 'rgba(224,182,74,.32)'; ctx.fill();
+    });
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+      const dx = pts[i].x-pts[j].x, dy = pts[i].y-pts[j].y, d = dx*dx+dy*dy;
+      if(d < 15000){
+        ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y);
+        ctx.strokeStyle = 'rgba(224,182,74,'+(.09*(1-d/15000))+')'; ctx.lineWidth = .6; ctx.stroke();
+      }
+    }
+    requestAnimationFrame(frame);
+  })();
+}
+
+/* ── matrix rain ─────────────────────────────────────── */
+let matrixOn = false, matrixRAF;
+function toggleMatrix(){
+  const cv = $('#matrix'), ctx = cv.getContext('2d');
+  matrixOn = !matrixOn;
+  if(!matrixOn){ cv.style.display='none'; cancelAnimationFrame(matrixRAF); return; }
+  egg('matrix');
+  cv.style.display = 'block';
+  cv.width = innerWidth; cv.height = innerHeight;
+  const chars = 'アイウエオカキクabcdef01{}<>/;=+const=>node'.split('');
+  const cols = Math.floor(cv.width/16);
+  const drops = Array(cols).fill(1);
+  let last = 0;
+  (function draw(t){
+    matrixRAF = requestAnimationFrame(draw);
+    if(t - last < 48) return; last = t;
+    ctx.fillStyle = 'rgba(7,8,11,.09)'; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillStyle = '#7ee787'; ctx.font = '14px monospace';
+    drops.forEach((y,i)=>{
+      ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
+      if(y*16 > cv.height && Math.random() > .975) drops[i] = 0;
+      drops[i]++;
+    });
+  })(0);
+}
+
+/* ── scroll reveals + progress + statusline path ─────── */
+function reveals(){
+  const els = $$('.head, .body, .card, .repo, .logrow, .prompt, .friend, .note, .final .t, .final .cta, #runaway');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach((e,i)=>{
+      if(!e.isIntersecting) return;
+      gsap.to(e.target,{opacity:1,y:0,duration:.85,ease:'power3.out',delay:.05*i});
+      io.unobserve(e.target);
+    });
+  },{threshold:.06, rootMargin:'0px 0px -70px 0px'});
+  els.forEach(el=>{
+    if(RM){ el.style.opacity = 1; return; }
+    gsap.set(el,{opacity:0,y:36});
+    io.observe(el);
+  });
+}
+
+function scrollWatch(){
+  const sections = $$('section[id]');
+  const links = $$('.pathnav a');
+  addEventListener('scroll', ()=>{
+    const sc = scrollY, max = document.body.scrollHeight - innerHeight;
+    $('#progress').style.width = (max>0 ? (sc/max)*100 : 0) + '%';
+    let cur = 'hero';
+    sections.forEach(s=>{ if(sc >= s.offsetTop - innerHeight*.4 && s.offsetParent) cur = s.id; });
+    $('#sb-path').textContent = '~/' + cur;
+    links.forEach(a=>a.classList.toggle('here', a.getAttribute('href') === '#'+cur));
+  }, {passive:true});
+}
+
+/* ── git log expandable diffs ────────────────────────── */
+function gitlog(){
+  $$('.logrow').forEach(row=>{
+    row.setAttribute('tabindex','0');
+    row.setAttribute('role','button');
+    const diffEl = row.querySelector('.diff');
+    const original = diffEl.textContent;
+    const open = ()=>{
+      row.classList.toggle('open');
+      diffEl.textContent = row.classList.contains('open') ? row.dataset.diff : original;
+      if(!RM) gsap.fromTo(diffEl,{opacity:0},{opacity:1,duration:.35});
+    };
+    row.addEventListener('click', open);
+    row.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } });
+  });
+}
+
+/* ── friends: poke + un-blockable ────────────────────── */
+const POKES = [
+  'poke sent. delivered. read. ignored. (they\'re gaming.)',
+  'poke sent. they replied "wat" and went back to it.',
+  'cannot poke — currently in a call with me.',
+  'poke queued behind 47 other pokes.'
+];
+function friendsUX(){
+  $$('[data-poke]').forEach(b=>b.addEventListener('click',()=>{
+    toast('POKE', POKES[Math.floor(Math.random()*POKES.length)], true);
+  }));
+  $$('[data-block]').forEach(b=>b.addEventListener('click',()=>{
+    egg('block');
+    b.textContent = 'blocking...';
+    setTimeout(()=>{
+      b.textContent = 'block';
+      toast('BLOCK FAILED','error: friendship is immutable. cannot unmount /dev/them — device is busy (being loved).');
+    }, 900);
+    if(!RM) gsap.fromTo(b.closest('.friend'),{x:-7},{x:0,duration:.55,ease:'elastic.out(1,.35)'});
+  }));
+}
+
+/* ── konami / chaos mode ─────────────────────────────── */
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+let kIdx = 0;
+function chaos(){
+  egg('konami');
+  toast('CHAOS MODE','gravity has been deprecated. rolling back in 4 seconds.');
+  if(RM) return;
+  document.body.classList.add('chaos');
+  const targets = $$('.card, .repo, .friend, .head, .logrow, .prompt, #name');
+  targets.forEach(el=>{
+    gsap.to(el,{ y: innerHeight*(0.6+Math.random()*0.9), rotation:(Math.random()-.5)*120,
+      duration:1.1+Math.random()*.9, ease:'power2.in', delay:Math.random()*.4 });
+  });
+  setTimeout(()=>{
+    targets.forEach(el=>gsap.to(el,{y:0,rotation:0,duration:1.3,ease:'elastic.out(1,.55)',delay:Math.random()*.25}));
+    document.body.classList.remove('chaos');
+    $('#sb-msg').textContent = 'gravity restored. no elements were harmed.';
+  }, 4000);
+}
+
+/* ── the runaway button ──────────────────────────────── */
+function runaway(){
+  const btn = $('#runaway');
+  let dodges = 0;
+  const flee = ()=>{
+    if(dodges >= 5) return;
+    dodges++;
+    const x = (Math.random()-.5)*Math.min(360, innerWidth*.6);
+    const y = (Math.random()-.5)*140;
+    gsap.to(btn,{x,y,duration:.32,ease:'power3.out'});
+    if(dodges === 3) btn.textContent = 'seriously. do not.';
+    if(dodges === 5){ btn.textContent = 'fine. click it.'; gsap.to(btn,{x:0,y:0,duration:.5,ease:'back.out(1.6)'}); }
+  };
+  btn.addEventListener('mouseenter', flee);
+  btn.addEventListener('click', ()=>{
+    egg('runaway');
+    btn.textContent = 'you clicked it.';
+    toast('YOU CLICKED IT','nothing bad happened. i just wanted to see if you would. (you always would.)');
+    if(!RM) gsap.fromTo(btn,{scale:.9},{scale:1,duration:.6,ease:'elastic.out(1,.4)'});
+  });
+}
+
+/* ── right-click menu ────────────────────────────────── */
+const CTX_ITEMS = [
+  ['View source','it\'s all right there. one file. no build step. i\'m not hiding anything (except 14 things).'],
+  ['Inspect element','please do. tell me what\'s broken, i\'ll fix it tonight.'],
+  ['Steal this design','honestly? go ahead. just don\'t steal the friends section, that one\'s about real people.'],
+  ['Report bug','sending... sent to me. i am the entire support department.'],
+  ['sep',null],
+  ['Save page as...','saved. to your heart. (and probably Downloads.)'],
+  ['dead','npm install ../happiness — E404 not found']
+];
+function ctxMenu(){
+  const menu = $('#ctx');
+  menu.innerHTML = CTX_ITEMS.map(([label,msg])=>{
+    if(label === 'sep') return '<div class="sep"></div>';
+    if(label === 'dead') return '<div class="dead">'+msg+'</div>';
+    return '<div data-msg="'+msg.replace(/"/g,'&quot;')+'">'+label+'</div>';
+  }).join('');
+  addEventListener('contextmenu', e=>{
+    if(e.target.closest('input,textarea,[contenteditable]')) return;
+    e.preventDefault(); egg('ctx');
+    menu.style.display = 'block';
+    menu.style.left = Math.min(e.clientX, innerWidth - 230) + 'px';
+    menu.style.top  = Math.min(e.clientY, innerHeight - 260) + 'px';
+    gsap.fromTo(menu,{opacity:0,scale:.95},{opacity:1,scale:1,duration:.16,ease:'power2.out'});
+  });
+  addEventListener('click', ()=>{ menu.style.display = 'none'; });
+  menu.addEventListener('click', e=>{
+    const item = e.target.closest('[data-msg]');
+    if(item) toast('CONTEXT', item.dataset.msg, true);
+  });
+}
+
+/* ── cookie troll ────────────────────────────────────── */
+function cookieTroll(){
+  const box = $('#cookie');
+  setTimeout(()=>{
+    box.style.display = 'block';
+    if(!RM) gsap.fromTo(box,{opacity:0,y:22},{opacity:1,y:0,duration:.5,ease:'power3.out'});
+  }, 14000);
+  $$('#cookie button').forEach(b=>b.addEventListener('click',()=>{
+    egg('cookie');
+    toast('CONSENT RECORDED', b.dataset.cookie === 'a' ? 'nothing was recorded. there is nothing to record.' : 'same, honestly.', true);
+    gsap.to(box,{opacity:0,y:16,duration:.3,onComplete:()=>box.style.display='none'});
+  }));
+}
+
+/* ── light mode, denied ──────────────────────────────── */
+let lightLock = false;
+function lightMode(){
+  if(lightLock) return;
+  lightLock = true; setTimeout(()=>lightLock = false, 2200);
+  egg('light');
+  const flash = document.createElement('div');
+  flash.style.cssText = 'position:fixed;inset:0;background:#fff;z-index:950;pointer-events:none';
+  document.body.appendChild(flash);
+  toast('LIGHT MODE','requested. denied. this page was written at 3am and it shows.');
+  gsap.fromTo(flash,{opacity:0},{opacity:.95,duration:.12,yoyo:true,repeat:1,
+    onComplete:()=>gsap.to(flash,{opacity:0,duration:.5,onComplete:()=>flash.remove()})});
+}
+
+/* ── name click counter ──────────────────────────────── */
+function nameClicks(){
+  const name = $('#name');
+  let n = 0;
+  const msgs = {3:'that\'s three.',6:'six. you good?',9:'one more. i dare you.'};
+  name.addEventListener('click', ()=>{
+    n++;
+    if(!RM) gsap.fromTo(name,{scale:.98},{scale:1,duration:.4,ease:'elastic.out(1,.4)'});
+    if(msgs[n]) $('#sb-msg').textContent = msgs[n];
+    if(n === 10){
+      egg('name');
+      toast('TEN CLICKS','a demon\'s name, borrowed from a book i read too young. it stuck. hello.');
+      if(!RM) gsap.to(name,{rotation:360,duration:1.2,ease:'power3.inOut',onComplete:()=>gsap.set(name,{rotation:0})});
+      n = 0;
+    }
+  });
+}
+
+/* ── keyboard ────────────────────────────────────────── */
+function keyboard(){
+  const keysPanel = $('#keys');
+  let typed = '';
+  addEventListener('keydown', e=>{
+    const typing = e.target.closest('input,textarea,[contenteditable]');
+
+    // konami works everywhere except while typing
+    if(!typing){
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      kIdx = (k === KONAMI[kIdx]) ? kIdx+1 : (k === KONAMI[0] ? 1 : 0);
+      if(kIdx === KONAMI.length){ kIdx = 0; chaos(); }
+
+      typed = (typed + (e.key.length===1 ? e.key.toLowerCase() : '')).slice(-6);
+      if(typed.endsWith('sudo')){
+        egg('sudo');
+        toast('sudo','guest is not in the sudoers file. this incident has been reported to my mother.');
+        typed = '';
+      }
+    }
+
+    if(e.key === 'Escape'){
+      keysPanel.style.display = 'none';
+      $('#ctx').style.display = 'none';
+      if(termOpen) toggleTerm(false);
+      return;
+    }
+
+    if(typing) return;
+
+    if(e.key === '~' || e.key === '`'){ e.preventDefault(); toggleTerm(); }
+    if(e.key === '?'){ egg('keys'); keysPanel.style.display = keysPanel.style.display === 'flex' ? 'none' : 'flex'; }
+    if(e.key.toLowerCase() === 'l') lightMode();
+    if(e.key.toLowerCase() === 'f'){
+      document.getElementById('friends').scrollIntoView({behavior:RM?'auto':'smooth'});
+      toast('SUMMONING','friend located. they are online. they are always online.', true);
+    }
+  });
+  keysPanel.addEventListener('click', e=>{ if(e.target === keysPanel) keysPanel.style.display = 'none'; });
+  $('#sb-keys').addEventListener('click', ()=>{ egg('keys'); keysPanel.style.display = 'flex'; });
+}
+
+/* ── terminal ────────────────────────────────────────── */
+let termOpen = false;
+const FILES = {
+  'secrets.txt':'1. i still google "array methods js"\n2. i name variables `thing2` under pressure\n3. i reread my own old code and cringe, which means it\'s working',
+  'todo.md':'[x] rewrite the site\n[ ] finish the bot dashboard\n[ ] finish literally anything in unfinished/\n[ ] sleep',
+  '.env':'nice try. it\'s empty. i learned that lesson exactly once and i learned it loudly.',
+  'friends.json':'{\n  "online": { "handle": "@nightowl", "status": "always", "blockable": false },\n  "irl":    { "handle": "./real-life", "latency": "0ms", "blockable": false }\n}'
+};
+
+const CMDS = {
+  help:()=>['available commands:','  <span class="g">whoami  ls  cat &lt;file&gt;  friends  stack  neofetch</span>',
+            '  <span class="g">uptime  coffee  ping  matrix  hire  sudo  vim  clear  exit</span>',
+            '<span class="f">(some of these are jokes. all of them run.)</span>'].join('\n'),
+  whoami:()=>'guest. welcome in. mind the wires.',
+  ls:()=>'<span class="g">origin/  the-ugly-era/  stack/  friends/  unfinished/</span>\nsecrets.txt  todo.md  .env  friends.json',
+  cat:(a)=>{
+    if(!a) return 'usage: cat &lt;file&gt;';
+    return FILES[a] || 'cat: '+a+': no such file. try <span class="g">ls</span>.';
+  },
+  friends:()=>'PINNED (2)\n  <span class="g">@nightowl</span>    online     best online    <span class="f">blockable: false</span>\n  <span class="g">./real-life</span>  irl        best irl       <span class="f">latency: 0ms</span>\n\n<span class="f">everyone else: too many to render. you\'re probably in there.</span>',
+  stack:()=>'node · discord.js · vanilla js · gsap · glsl · css\n<span class="f">frameworks: 0. regrets: several.</span>',
+  neofetch:()=>{ egg('neofetch'); return [
+    '<span class="g">      ▄▄▄▄▄▄      </span>  guest@asmodeus',
+    '<span class="g">     █ ▄  ▄ █     </span>  ---------------',
+    '<span class="g">     █  ▀▀  █     </span>  OS: Insomnia 3AM LTS',
+    '<span class="g">      ▀▄▄▄▄▀      </span>  Shell: bash (badly configured)',
+    '<span class="g">       █  █       </span>  Editor: whichever opened first',
+    '<span class="g">      ▄▀  ▀▄      </span>  Languages: JS, GLSL, Sarcasm',
+    '                    Uptime: too long',
+    '                    Packages: 1291 (npm), 4 (used)'].join('\n'); },
+  uptime:()=>'up '+Math.floor((Date.now()-BOOT_TIME)/1000)+'s on this page. up several years on the bit.',
+  coffee:()=>'☕ brewed. cannot be transmitted over HTTP. (RFC 2324, look it up.)',
+  ping:()=>'PING you (127.0.0.1): 0.42ms\n<span class="f">that\'s just you, talking to yourself. it\'s nice here though.</span>',
+  matrix:()=>{ toggleMatrix(); return matrixOn ? 'rain: on. press ~ and type matrix again to stop.' : 'rain: off.'; },
+  hire:()=>{ location.href = 'mailto:outbreakmalware@gmail.com?subject=hey'; return 'opening mail client. be nice, i get nervous.'; },
+  sudo:()=>{ egg('sudo'); return '<span class="r">guest is not in the sudoers file.</span>\nthis incident has been reported to my mother.'; },
+  'rm':(a)=>a && a.includes('rf') ? '<span class="r">removing /</span>\n........................\nremoved 0 files.\n<span class="f">i like my files. and my friends. and this page.</span>' : 'rm: missing operand',
+  vim:()=>'you are now in vim.\n<span class="f">:q doesn\'t work. :wq doesn\'t work. type <span class="g">exit</span>. i\'m sorry.</span>',
+  sl:()=>'      ====        ________\n  _D _|  |_______/        \\__I_I_____\n   |(_)---  |   H\\________/ |   |\n<span class="f">you typed sl instead of ls. we\'ve all been there.</span>',
+  secret:()=>'hints:\n  · the tilde key (you\'re here)\n  · up up down down...\n  · right-click something\n  · triple-click the line at the very bottom\n  · press ? and l and f\n  · hover the button that says not to',
+  echo:(a)=>a || '',
+  clear:()=>'__CLEAR__',
+  exit:()=>{ toggleTerm(false); return ''; }
+};
+const BOOT_TIME = Date.now();
+
+function termPrint(html){
+  const out = $('#term-out');
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+function toggleTerm(force){
+  const t = $('#term');
+  termOpen = (typeof force === 'boolean') ? force : !termOpen;
+  if(termOpen){
+    egg('terminal');
+    t.style.display = 'flex';
+    gsap.fromTo(t,{opacity:0,y:22},{opacity:1,y:0,duration:.32,ease:'power3.out'});
+    $('#term-in').focus();
+    if(!$('#term-out').dataset.greeted){
+      $('#term-out').dataset.greeted = '1';
+      termPrint('<span class="u">asmodeus shell</span> — not a real shell, but it tries.\ntype <span class="g">help</span>. type <span class="g">secret</span> if you\'re stuck.\n');
+    }
+  } else {
+    gsap.to(t,{opacity:0,duration:.22,onComplete:()=>{ t.style.display='none'; }});
+  }
+}
+
+function terminal(){
+  const input = $('#term-in');
+  const hist = []; let hp = -1;
+  $('#sb-term').addEventListener('click', ()=>toggleTerm());
+  input.addEventListener('keydown', e=>{
+    if(e.key === 'ArrowUp'){ e.preventDefault(); if(hist.length){ hp = Math.max(0,(hp<0?hist.length:hp)-1); input.value = hist[hp]||''; } return; }
+    if(e.key === 'ArrowDown'){ e.preventDefault(); if(hp>=0){ hp = Math.min(hist.length-1,hp+1); input.value = hist[hp]||''; } return; }
+    if(e.key !== 'Enter') return;
+    const raw = input.value.trim();
+    input.value = '';
+    if(!raw) return;
+    hist.push(raw); hp = -1;
+    termPrint('<span class="u">guest@asmodeus:~$</span> ' + raw.replace(/</g,'&lt;'));
+    const [cmd, ...rest] = raw.split(/\s+/);
+    const arg = rest.join(' ');
+    const fn = CMDS[cmd.toLowerCase()];
+    if(!fn){
+      termPrint('<span class="r">'+cmd.replace(/</g,'&lt;')+': command not found.</span> try <span class="g">help</span>.');
+    } else {
+      const res = fn(arg);
+      if(res === '__CLEAR__'){ $('#term-out').innerHTML = ''; }
+      else if(res) termPrint(res);
+    }
+    $('#term-out').scrollTop = $('#term-out').scrollHeight;
+  });
+}
+
+/* ── hidden chapter (triple-click the signature) ─────── */
+function hiddenChapter(){
+  const sig = $('#sig');
+  let clicks = 0, timer;
+  sig.addEventListener('click', ()=>{
+    clicks++;
+    clearTimeout(timer);
+    timer = setTimeout(()=>clicks = 0, 900);
+    if(clicks >= 3){
+      clicks = 0;
+      const sec = $('#secret-chapter');
+      if(sec.style.display === 'block') return;
+      sec.style.display = 'block';
+      egg('secret');
+      $$('#secret-chapter .head, #secret-chapter .body, #secret-chapter .prompt, #secret-chapter .note')
+        .forEach((el,i)=>gsap.fromTo(el,{opacity:0,y:30},{opacity:1,y:0,duration:.8,delay:.12*i,ease:'power3.out'}));
+      setTimeout(()=>sec.scrollIntoView({behavior:RM?'auto':'smooth'}), 120);
+      toast('UNLISTED CHAPTER','a section appeared above the dispatches. it\'s the honest one.');
+    }
+  });
+}
+
+/* ── console easter eggs ─────────────────────────────── */
+function consoleEggs(){
+  const s1 = 'color:#e0b64a;font-family:monospace;font-size:12px';
+  const s2 = 'color:#7ee787;font-family:monospace;font-size:12px';
+  console.log('%c\n  ▄▀▀▄ ▄▀▀▀▀ █▀▄▀█ ▄▀▀▄ █▀▀▄ █▀▀ █  █ ▄▀▀▀\n  █▀▀█ ▀▀▀▄ █ ▀ █ █  █ █  █ █▀▀ █  █ ▀▀▀▄\n  ▀  ▀ ▀▀▀▀ ▀   ▀  ▀▀  ▀▀▀  ▀▀▀  ▀▀  ▀▀▀ \n', s1);
+  console.log('%cyou opened devtools. we\'re the same. hello.', s2);
+  console.log('%ctry: hire()  ·  friends()  ·  eggs()  ·  hug()', s1);
+  window.hire = ()=>{ egg('console'); console.log('%copening mail...', s2); location.href='mailto:outbreakmalware@gmail.com?subject=hey'; return 'be nice, i get nervous.'; };
+  window.friends = ()=>{ egg('console'); console.table([
+    {slot:'best online', handle:'@nightowl', status:'online, always', blockable:false},
+    {slot:'best irl', handle:'./real-life', status:'verified human', blockable:false}
+  ]); return 'both unblockable. it\'s a feature.'; };
+  window.eggs = ()=>{ egg('console'); console.log('%cfound '+found.size+'/'+TOTAL, s2);
+    Object.entries(EGGS).forEach(([k,v])=>console.log((found.has(k)?'%c ✓ ':'%c ✗ ')+v, found.has(k)?s2:'color:#565b6b;font-family:monospace'));
+    return 'press ~ and type secret for hints.'; };
+  window.hug = ()=>{ egg('console'); return '(づ｡◕‿‿◕｡)づ  there. you looked like you needed it.'; };
+}
+
+/* ── admin (unchanged behaviour, new paint) ──────────── */
+function showAdminLoginModal(){
+  $$('.modal').forEach(m=>m.remove());
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-in">
+      <h3>Private transmission</h3>
+      <p>keeper of the log only</p>
+      <input type="password" id="admin-pass" placeholder="access phrase" autofocus>
+      <button id="admin-unlock-btn">Unlock</button>
+      <div style="margin-top:16px;font-family:var(--mono);font-size:10.5px;color:var(--faint)">5 clicks on the dispatches prompt returns here</div>
+    </div>`;
+  document.body.appendChild(modal);
+  gsap.fromTo(modal,{opacity:0},{opacity:1,duration:.3});
+  const input = modal.querySelector('#admin-pass');
+  const btn = modal.querySelector('#admin-unlock-btn');
+
+  const tryUnlock = ()=>{
+    const pass = input.value.trim();
+    if(pass === 'Asmodeus2026' || pass === 'transmit'){
+      window.isAdmin = true;
+      const fc = $('#admin-post-form');
+      if(fc){
+        fc.innerHTML = `
+          <div style="margin-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:1.5px">NEW TRANSMISSION</div>
+          <input type="text" id="post-title" placeholder="Title..." style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--wire2);color:var(--ink);padding:12px 14px;border-radius:9px;margin-bottom:12px;font-size:15px;font-family:var(--sans)">
+          <div class="rt-toolbar">
+            <button onclick="formatText('bold')" title="Bold">B</button>
+            <button onclick="formatText('italic')" title="Italic"><i>I</i></button>
+            <button onclick="formatText('underline')" title="Underline">U</button>
+            <input type="color" onchange="formatTextColor(this.value)" title="Text colour" value="#e0b64a">
+            <select onchange="formatFont(this.value)" title="Font" style="min-width:150px">
+              <option value="inherit">Default</option>
+              <optgroup label="Serif">
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'Instrument Serif', Georgia, serif">Instrument Serif</option>
+                <option value="'Times New Roman', serif">Times New Roman</option>
+                <option value="Garamond, serif">Garamond</option>
+              </optgroup>
+              <optgroup label="Sans">
+                <option value="'Instrument Sans', system-ui, sans-serif">Instrument Sans</option>
+                <option value="Inter, system-ui, sans-serif">Inter</option>
+                <option value="'Helvetica Neue', Arial, sans-serif">Helvetica Neue</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+              </optgroup>
+              <optgroup label="Mono">
+                <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                <option value="Consolas, monospace">Consolas</option>
+                <option value="'Courier New', monospace">Courier New</option>
+              </optgroup>
+            </select>
+            <button onclick="clearFormatting()" title="Clear" style="width:auto;padding:0 10px;font-size:11.5px">Clear</button>
+          </div>
+          <div id="post-excerpt" contenteditable="true" style="min-height:130px;background:rgba(255,255,255,.03);border:1px solid var(--wire2);padding:14px 16px;border-radius:9px;color:#ddd;outline:none;font-size:15.5px;line-height:1.6"></div>
+          <button onclick="postAnnouncement()" style="margin-top:14px;background:var(--gold);color:#0a0a0c;padding:11px 26px;border:none;border-radius:999px;font-family:var(--mono);font-weight:700;cursor:pointer;font-size:13px">Transmit</button>`;
+        fc.style.display = 'block';
+      }
+      if(window.renderAnnouncements) window.renderAnnouncements();
+      toast('UNLOCKED','you have the keys. write something true.', true);
+      gsap.to(modal,{opacity:0,duration:.25,onComplete:()=>modal.remove()});
+    } else {
+      input.style.borderColor = 'var(--hot)';
+      gsap.fromTo(modal.querySelector('.modal-in'),{x:-9},{x:0,duration:.5,ease:'elastic.out(1,.35)'});
+      setTimeout(()=>{ if(input) input.style.borderColor = 'var(--wire2)'; }, 800);
+    }
+  };
+  btn.addEventListener('click', tryUnlock);
+  input.addEventListener('keydown', e=>{ if(e.key === 'Enter') tryUnlock(); });
+  modal.addEventListener('click', e=>{ if(e.target === modal) gsap.to(modal,{opacity:0,duration:.2,onComplete:()=>modal.remove()}); });
+}
+
+function formatText(c){ const e = $('#post-excerpt'); if(!e) return; e.focus(); document.execCommand(c,false,null); }
+function formatTextColor(c){ const e = $('#post-excerpt'); if(!e) return; e.focus(); document.execCommand('foreColor',false,c); }
+function formatFont(f){ const e = $('#post-excerpt'); if(!e) return; e.focus();
+  f === 'inherit' ? document.execCommand('removeFormat',false,null) : document.execCommand('fontName',false,f); }
+function clearFormatting(){ const e = $('#post-excerpt'); if(!e) return; e.focus(); document.execCommand('removeFormat',false,null); }
+window.formatText = formatText; window.formatTextColor = formatTextColor;
+window.formatFont = formatFont; window.clearFormatting = clearFormatting;
+window.showAdminLoginModal = showAdminLoginModal;
+
+function adminHooks(){
+  const lock = $('#admin-lock');
+  if(lock) lock.addEventListener('click', e=>{ e.stopPropagation(); showAdminLoginModal(); });
+  const label = $('#dispatches .prompt');
+  if(label){
+    let n = 0, t;
+    label.addEventListener('click', ()=>{
+      n++; clearTimeout(t); t = setTimeout(()=>n = 0, 1800);
+      if(n >= 5){ n = 0; showAdminLoginModal(); }
+    });
+  }
+}
+
+/* ── go ──────────────────────────────────────────────── */
+function start(){
+  heroIntro(); typeTaglines(); reveals(); scrollWatch(); gitlog();
+  friendsUX(); runaway(); ctxMenu(); cookieTroll(); nameClicks();
+  keyboard(); terminal(); hiddenChapter(); adminHooks();
+  $('#eggcount').textContent = '0/' + TOTAL;
+  setTimeout(()=>{ if(found.size === 0) $('#sb-msg').textContent = 'psst — press ~'; }, 9000);
+}
+
+starfield();
+consoleEggs();
+window.addEventListener('load', boot);
+</script>
+
+<script type="module">
+/* ── firebase: the dispatches feed ───────────────────── */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCaO-5zTbUlwoFsqoItLg14dG5397sLMqc",
+  authDomain: "my-website-bc849.firebaseapp.com",
+  projectId: "my-website-bc849",
+  storageBucket: "my-website-bc849.firebasestorage.app",
+  messagingSenderId: "789821682419",
+  appId: "1:789821682419:web:8a055731019f500c0dfd86",
+  measurementId: "G-GNEXT8J3DM"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window.db = db;
+window.firebaseFns = { collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot };
+window.isAdmin = false;
+
+function renderAnnouncements(){
+  const container = document.getElementById('announcements-list');
+  if(!container) return;
+  const { collection, query, orderBy, onSnapshot, deleteDoc, doc } = window.firebaseFns;
+  const q = query(collection(window.db,'announcements'), orderBy('timestamp','desc'));
+
+  onSnapshot(q, (snapshot)=>{
+    container.innerHTML = '';
+    if(snapshot.empty){
+      container.innerHTML = '<div class="empty">$ tail -f announcements.log<br>waiting for output... nothing transmitted yet.</div>';
+      return;
+    }
+    snapshot.forEach((snap)=>{
+      const post = snap.data();
+      const div = document.createElement('div');
+      div.className = 'post';
+      div.innerHTML = `
+        <div class="post-date">${post.date}</div>
+        <div class="post-title">${post.title}
+          ${window.isAdmin ? `<span class="new-badge" data-id="${snap.id}" title="delete">×</span>` : ''}
+        </div>
+        <div class="post-excerpt">${post.body || ''}</div>`;
+      container.appendChild(div);
+    });
+    if(window.isAdmin){
+      container.querySelectorAll('[data-id]').forEach(el=>{
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', async ()=>{
+          await deleteDoc(doc(window.db,'announcements', el.dataset.id));
+        });
+      });
+    }
+  }, (err)=>{
+    container.innerHTML = '<div class="empty">$ tail -f announcements.log<br><span style="color:var(--hot)">connection refused.</span> the feed is offline right now — everything else on this page still works.</div>';
+    console.warn('[dispatches]', err.message);
+  });
+}
+
+async function postAnnouncement(){
+  const titleEl = document.getElementById('post-title');
+  const editor = document.getElementById('post-excerpt');
+  if(!titleEl || !editor) return;
+  if(!titleEl.value.trim() || !editor.innerHTML.trim()) return;
+  const { collection, addDoc } = window.firebaseFns;
+  await addDoc(collection(window.db,'announcements'), {
+    date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    title: titleEl.value.trim(),
+    body: editor.innerHTML.trim(),
+    timestamp: Date.now()
+  });
+  titleEl.value = '';
+  editor.innerHTML = '';
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', renderAnnouncements);
+} else { renderAnnouncements(); }
+
+window.renderAnnouncements = renderAnnouncements;
+window.postAnnouncement = postAnnouncement;
+</script>
+
+<!--
+  hint #2: up, up, down, down, left, right, left, right, b, a — the classic.
+  hint #3: triple-click the very last line of the page.
+  hint #4: everything in the terminal is real. type `secret`.
+  if you got this far by reading the source instead of playing: respect. that's how i'd do it too.
+-->
+</body>
+</html>
